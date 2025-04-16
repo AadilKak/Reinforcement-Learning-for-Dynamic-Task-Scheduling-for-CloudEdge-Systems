@@ -1,234 +1,332 @@
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Lambda
-from tensorflow.keras.optimizers import Adam
-import tensorflow_probability as tfp
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+import random
+from collections import namedtuple, deque
+import yaml
+import os
+import time
+import matplotlib.pyplot as plt
+from typing import List, Dict, Tuple, Any, Optional
 
-class PPO:
-    def __init__(self, state_dim, action_dim):
+class PPONetwork(nn.Module):
+    """
+    Actor-Critic network for PPO algorithm.
+    """
+    
+    def __init__(self, input_dim, output_dim, shared_layers=True):
+        super(PPONetwork, self).__init__()
+        
+        # Feature extraction layers (shared between actor and critic)
+        self.shared_layers = shared_layers
+        if shared_layers:
+            self.feature_layer = nn.Sequential(
+                nn.Linear(input_dim, 128),
+                nn.ReLU(),
+                nn.Linear(128, 128),
+                nn.ReLU()
+            )
+            
+            # Actor: policy network
+            self.actor_head = nn.Sequential(
+                nn.Linear(128, 64),
+                nn.ReLU(),
+                nn.Linear(64, output_dim)
+            )
+            
+            # Critic: value network
+            self.critic_head = nn.Sequential(
+                nn.Linear(128, 64),
+                nn.ReLU(),
+                nn.Linear(64, 1)
+            )
+        else:
+            # Separate networks for actor and critic
+            self.actor = nn.Sequential(
+                nn.Linear(input_dim, 128),
+                nn.ReLU(),
+                nn.Linear(128, 64),
+                nn.ReLU(),
+                nn.Linear(64, output_dim)
+            )
+            
+            self.critic = nn.Sequential(
+                nn.Linear(input_dim, 128),
+                nn.ReLU(),
+                nn.Linear(128, 64),
+                nn.ReLU(),
+                nn.Linear(64, 1)
+            )
+    
+    def forward(self, x):
+        """
+        Forward pass through the network.
+        
+        Args:
+            x: Input tensor
+            
+        Returns:
+            tuple: (action_logits, value)
+        """
+        if self.shared_layers:
+            features = self.feature_layer(x)
+            action_logits = self.actor_head(features)
+            value = self.critic_head(features)
+        else:
+            action_logits = self.actor(x)
+            value = self.critic(x)
+            
+        return action_logits, value
+    
+    def get_action_probs(self, x):
+        """
+        Get action probabilities.
+        
+        Args:
+            x: Input tensor
+            
+        Returns:
+            torch.Tensor: Action probabilities
+        """
+        if self.shared_layers:
+            features = self.feature_layer(x)
+            action_logits = self.actor_head(features)
+        else:
+            action_logits = self.actor(x)
+            
+        return F.softmax(action_logits, dim=-1)
+    
+    def get_value(self, x):
+        """
+        Get value estimate.
+        
+        Args:
+            x: Input tensor
+            
+        Returns:
+            torch.Tensor: Value estimate
+        """
+        if self.shared_layers:
+            features = self.feature_layer(x)
+            value = self.critic_head(features)
+        else:
+            value = self.critic(x)
+            
+        return value
+
+
+class PPOAgent:
+    """
+    Proximal Policy Optimization agent for cloud-edge task scheduling.
+
+    Implements PPO algorithm with clipped surrogate objective, 
+    entropy bonus, and generalized advantage estimation.
+    """
+    def __init__(self, state_dim, action_dim, config):
+        """
+        Initialize PPO agent.
+        
+        Args:
+            state_dim: Dimension of state space
+            action_dim: Dimension of action space
+            config: Dictionary containing hyperparameters
+        """
         self.state_dim = state_dim
         self.action_dim = action_dim
         
-        # Hyperparameters
-        self.gamma = 0.99
-        self.lam = 0.95
-        self.clip_ratio = 0.2
-        self.critic_discount = 0.5
-        self.entropy_beta = 0.01
-        self.actor_lr = 0.0003
-        self.critic_lr = 0.001
-        self.update_epochs = 10
-        self.batch_size = 64
+        # Extract hyperparameters from config
+        self.gamma = config.get('discount_factor_g', 0.99)
+        self.policy_lr = config.get('policy_lr', 0.0003)
+        self.value_lr = config.get('value_lr', 0.001)
+        self.clip_ratio = config.get('clip_ratio', 0.2)
+        self.entropy_coef = config.get('entropy_coef', 0.01)
+        self.value_coef = config.get('value_coef', 0.5)
+        self.gae_lambda = config.get('gae_lambda', 0.95)
+        self.epochs = config.get('epochs', 10)
+        self.batch_size = config.get('mini_batch_size', 64)
         
-        # Build actor and critic networks
-        self.actor = self._build_actor()
-        self.critic = self._build_critic()
+        # Create PPO network
+        self.network = PPONetwork(state_dim, action_dim)
         
-        # Optimizers
-        self.actor_optimizer = Adam(learning_rate=self.actor_lr)
-        self.critic_optimizer = Adam(learning_rate=self.critic_lr)
+        # Create optimizers
+        self.optimizer = optim.Adam(self.network.parameters(), lr=self.policy_lr)
         
-    def _build_actor(self):
-        """Build policy network (actor)"""
-        inputs = Input(shape=(self.state_dim,))
-        x = Dense(64, activation='relu')(inputs)
-        x = Dense(64, activation='relu')(x)
+        # Set device (GPU if available, otherwise CPU)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.network.to(self.device)
         
-        # Output layer with softmax to get action probabilities
-        action_probs = Dense(self.action_dim, activation='softmax')(x)
+        # Create buffers for storing experience
+        self.reset_buffers()
         
-        model = Model(inputs=inputs, outputs=action_probs)
-        return model
-    
-    def _build_critic(self):
-        """Build value network (critic)"""
-        inputs = Input(shape=(self.state_dim,))
-        x = Dense(64, activation='relu')(inputs)
-        x = Dense(64, activation='relu')(x)
+        # Stats
+        self.actor_loss_history = []
+        self.critic_loss_history = []
+        self.entropy_history = []
+        self.reward_history = []
         
-        # Value prediction
-        value = Dense(1)(x)
+    def reset_buffers(self):
+        """Reset experience buffers"""
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.values = []
+        self.log_probs = []
+        self.dones = []
         
-        model = Model(inputs=inputs, outputs=value)
-        return model
-    
-    def get_action(self, state):
-        """Select action according to the policy"""
-        state = np.reshape(state, [1, self.state_dim])
-        action_probs = self.actor.predict(state, verbose=0)[0]
+    def select_action(self, state, evaluation=False):
+        """
+        Select action using policy network.
         
-        # Sample action from the probability distribution
-        action = np.random.choice(self.action_dim, p=action_probs)
-        
-        return action, action_probs
-    
-    def get_value(self, state):
-        """Get value estimate from critic"""
-        state = np.reshape(state, [1, self.state_dim])
-        return self.critic.predict(state, verbose=0)[0, 0]
-    
-    @tf.function
-    def _actor_loss(self, states, actions, advantages, old_probs):
-        """Compute PPO actor loss with clipping"""
-        actions_one_hot = tf.one_hot(actions, self.action_dim)
-        
-        # Current policy log probabilities
-        new_probs = self.actor(states, training=True)
-        new_log_probs = tf.reduce_sum(tf.math.log(new_probs + 1e-10) * actions_one_hot, axis=1)
-        old_log_probs = tf.math.log(old_probs + 1e-10)
-        
-        # Ratio of new and old policies
-        ratio = tf.exp(new_log_probs - old_log_probs)
-        
-        # Clipped objective
-        clip_adv = tf.clip_by_value(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio) * advantages
-        loss_clip = tf.minimum(ratio * advantages, clip_adv)
-        
-        # Add entropy bonus for exploration
-        entropy = -tf.reduce_sum(new_probs * tf.math.log(new_probs + 1e-10), axis=1)
-        
-        return -tf.reduce_mean(loss_clip + self.entropy_beta * entropy)
-    
-    @tf.function
-    def _critic_loss(self, states, returns):
-        """Compute critic loss"""
-        value_pred = self.critic(states, training=True)
-        mse = tf.square(returns - tf.squeeze(value_pred))
-        return tf.reduce_mean(mse)
-    
-    def train(self, states, actions, rewards, next_states, dones, action_probs):
-        """Train actor and critic networks using PPO algorithm"""
-        # Convert to tensors
-        states = np.array(states)
-        actions = np.array(actions)
-        rewards = np.array(rewards)
-        next_states = np.array(next_states)
-        dones = np.array(dones)
-        old_action_probs = np.array([probs[act] for probs, act in zip(action_probs, actions)])
-        
-        # Calculate advantages and returns
-        values = [self.get_value(state) for state in states]
-        next_values = [self.get_value(next_state) for next_state in next_states]
-        
-        # GAE calculation
-        advantages = []
-        returns = []
-        gae = 0
-        
-        for i in reversed(range(len(rewards))):
-            if dones[i]:
-                delta = rewards[i] - values[i]
-                gae = delta
-            else:
-                delta = rewards[i] + self.gamma * next_values[i] - values[i]
-                gae = delta + self.gamma * self.lam * gae
+        Args:
+            state: Current state
+            evaluation: If True, use greedy policy (no exploration)
             
-            advantages.append(gae)
-            returns.append(gae + values[i])
+        Returns:
+            tuple: (action, log_prob, value)
+        """
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         
-        advantages = np.array(advantages[::-1])
-        returns = np.array(returns[::-1])
+        with torch.no_grad():
+            action_logits, value = self.network(state_tensor)
+            
+            # Get action probabilities
+            action_probs = F.softmax(action_logits, dim=-1)
+            
+            # Sample action
+            if evaluation:
+                # Greedy action selection
+                action = torch.argmax(action_probs, dim=-1)
+            else:
+                # Sample from action distribution
+                dist = torch.distributions.Categorical(action_probs)
+                action = dist.sample()
+                
+            # Calculate log probability
+            log_prob = torch.log(action_probs.squeeze(0)[action.item()] + 1e-8)
+        
+        return action.item(), log_prob.item(), value.item()
+
+    def store_experience(self, state, action, reward, value, log_prob, done):
+        """Store experience in buffers"""
+        self.states.append(state)
+        self.actions.append(action)
+        self.rewards.append(reward)
+        self.values.append(value)
+        self.log_probs.append(log_prob)
+        self.dones.append(done)
+
+    def update_model(self):
+        """Update model using experiences from buffers"""
+        # Check if we have enough data
+        if len(self.states) == 0:
+            return 0.0, 0.0, 0.0
+        
+        # Convert lists to tensors
+        states = torch.FloatTensor(self.states).to(self.device)
+        actions = torch.LongTensor(self.actions).to(self.device)
+        old_log_probs = torch.FloatTensor(self.log_probs).to(self.device)
+        rewards = torch.FloatTensor(self.rewards).to(self.device)
+        dones = torch.FloatTensor(self.dones).to(self.device)
+        values = torch.FloatTensor(self.values).to(self.device)
+        
+        # Calculate advantages using Generalized Advantage Estimation (GAE)
+        advantages = []
+        gae = 0
+        with torch.no_grad():
+            # Get values for the last states
+            next_values = self.network.get_value(states)
+            
+            # Calculate deltas and advantages
+            for i in reversed(range(len(rewards))):
+                if i == len(rewards) - 1:
+                    next_val = 0 if dones[i] else next_values[i].item()
+                else:
+                    next_val = values[i+1]
+                
+                delta = rewards[i] + self.gamma * next_val * (1 - dones[i]) - values[i]
+                gae = delta + self.gamma * self.gae_lambda * (1 - dones[i]) * gae
+                advantages.insert(0, gae)
+                
+        advantages = torch.FloatTensor(advantages).to(self.device)
+        
+        # Calculate returns (advantage + value)
+        returns = advantages + values
         
         # Normalize advantages
-        advantages = (advantages - np.mean(advantages)) / (np.std(advantages) + 1e-8)
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         
-        # Training with minibatches for multiple epochs
-        indices = np.arange(len(states))
+        # Prepare dataset for minibatch training
+        dataset = torch.utils.data.TensorDataset(states, actions, old_log_probs, advantages, returns)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         
-        for _ in range(self.update_epochs):
-            np.random.shuffle(indices)
-            
-            for start in range(0, len(states), self.batch_size):
-                end = start + self.batch_size
-                if end > len(states):
-                    end = len(states)
-                
-                batch_indices = indices[start:end]
-                
-                with tf.GradientTape() as actor_tape:
-                    actor_loss = self._actor_loss(
-                        tf.convert_to_tensor(states[batch_indices], dtype=tf.float32),
-                        tf.convert_to_tensor(actions[batch_indices], dtype=tf.int32),
-                        tf.convert_to_tensor(advantages[batch_indices], dtype=tf.float32),
-                        tf.convert_to_tensor(old_action_probs[batch_indices], dtype=tf.float32)
-                    )
-                
-                with tf.GradientTape() as critic_tape:
-                    critic_loss = self._critic_loss(
-                        tf.convert_to_tensor(states[batch_indices], dtype=tf.float32),
-                        tf.convert_to_tensor(returns[batch_indices], dtype=tf.float32)
-                    )
-                
-                # Compute and apply gradients
-                actor_grads = actor_tape.gradient(actor_loss, self.actor.trainable_variables)
-                critic_grads = critic_tape.gradient(critic_loss, self.critic.trainable_variables)
-                
-                self.actor_optimizer.apply_gradients(zip(actor_grads, self.actor.trainable_variables))
-                self.critic_optimizer.apply_gradients(zip(critic_grads, self.critic.trainable_variables))
+        # Track losses for this update
+        total_actor_loss = 0
+        total_critic_loss = 0
+        total_entropy = 0
         
-        return actor_loss, critic_loss
+        # Perform multiple epochs of training
+        for _ in range(self.epochs):
+            for batch_states, batch_actions, batch_old_log_probs, batch_advantages, batch_returns in dataloader:
+                # Get current action probabilities and values
+                action_logits, values = self.network(batch_states)
+                action_probs = F.softmax(action_logits, dim=-1)
+                
+                # Create distribution and calculate log probabilities
+                dist = torch.distributions.Categorical(action_probs)
+                new_log_probs = dist.log_prob(batch_actions)
+                
+                # Calculate entropy for exploration bonus
+                entropy = dist.entropy().mean()
+                
+                # Calculate ratio for PPO clipping
+                ratio = torch.exp(new_log_probs - batch_old_log_probs)
+                
+                # Calculate surrogate losses
+                surrogate1 = ratio * batch_advantages
+                surrogate2 = torch.clamp(ratio, 1.0 - self.clip_ratio, 1.0 + self.clip_ratio) * batch_advantages
+                
+                # Calculate actor loss (negative because we're trying to maximize the objective)
+                actor_loss = -torch.min(surrogate1, surrogate2).mean()
+                
+                # Calculate critic loss
+                critic_loss = F.mse_loss(values.squeeze(), batch_returns)
+                
+                # Calculate total loss
+                loss = actor_loss + self.value_coef * critic_loss - self.entropy_coef * entropy
+                
+                # Update the network
+                self.optimizer.zero_grad()
+                loss.backward()
+                # Clip gradients to prevent explosion
+                torch.nn.utils.clip_grad_norm_(self.network.parameters(), 0.5)
+                self.optimizer.step()
+                
+                # Record losses
+                total_actor_loss += actor_loss.item()
+                total_critic_loss += critic_loss.item()
+                total_entropy += entropy.item()
+        
+        # Calculate average losses
+        avg_actor_loss = total_actor_loss / (self.epochs * len(dataloader))
+        avg_critic_loss = total_critic_loss / (self.epochs * len(dataloader))
+        avg_entropy = total_entropy / (self.epochs * len(dataloader))
+        
+        # Store losses for tracking
+        self.actor_loss_history.append(avg_actor_loss)
+        self.critic_loss_history.append(avg_critic_loss)
+        self.entropy_history.append(avg_entropy)
+        
+        # Clear experience buffers
+        self.reset_buffers()
+        
+        return avg_actor_loss, avg_critic_loss, avg_entropy
 
-# Function to train the PPO agent
-def train_ppo():
-    env = CloudEdgeEnvironment()
-    state_dim = len(env.reset())
-    action_dim = 2  # Process on edge or offload to cloud
-    
-    agent = PPOAgent(state_dim, action_dim)
-    episodes = 1000
-    max_steps = 100
-    
-    for episode in range(episodes):
-        state = env.reset()
-        episode_reward = 0
+    def save_model(self, path):
+        """Save model weights to file"""
+        torch.save(self.network.state_dict(), path)
         
-        # Storage for experience
-        states = []
-        actions = []
-        rewards = []
-        next_states = []
-        dones = []
-        action_probs = []
-        
-        for step in range(max_steps):
-            # Get action and its probability
-            action, probs = agent.get_action(state)
-            
-            # Take action in environment
-            next_state, reward, done, _ = env.step(action)
-            
-            # Store experience
-            states.append(state)
-            actions.append(action)
-            rewards.append(reward)
-            next_states.append(next_state)
-            dones.append(done)
-            action_probs.append(probs)
-            
-            episode_reward += reward
-            state = next_state
-            
-            if len(states) >= 256:  # Batch size for updating
-                actor_loss, critic_loss = agent.train(states, actions, rewards, next_states, dones, action_probs)
-                
-                # Clear storage
-                states = []
-                actions = []
-                rewards = []
-                next_states = []
-                dones = []
-                action_probs = []
-        
-        # Update with remaining data if any
-        if states:
-            agent.train(states, actions, rewards, next_states, dones, action_probs)
-        
-        # Log progress
-        if episode % 10 == 0:
-            print(f"Episode: {episode}, Total Reward: {episode_reward}")
-    
-    return agent
-
-if __name__ == "__main__":
-    trained_agent = train_ppo()
+    def load_model(self, path):
+        """Load model weights from file"""
+        self.network.load_state_dict(torch.load(path))
