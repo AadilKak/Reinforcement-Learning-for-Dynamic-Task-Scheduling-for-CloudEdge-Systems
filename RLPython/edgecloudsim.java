@@ -357,50 +357,40 @@ public class RLTaskScheduler extends EdgeOrchestrator {
      * Calls Python model to predict the action for a state
      */
     private int callPythonModel(double[] state) throws IOException {
-        // Create temporary file containing state
-        String statePath = "temp_state.csv";
-        FileWriter writer = new FileWriter(statePath);
-        
-        // Write state to CSV format
-        for (double val : state) {
-            writer.write(String.valueOf(val) + ",");
+        URL url = new URL("http://localhost:5000/predict");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+
+        // Convert state to JSON
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{\"state\": [");
+        for (int i = 0; i < state.length; i++) {
+            jsonBuilder.append(state[i]);
+            if (i < state.length - 1) jsonBuilder.append(",");
         }
-        writer.close();
-        
-        // Prepare Python command
-        String pythonCommand = pythonInterpreter + " predict_action.py";
-        pythonCommand += " --model " + modelPath;
-        pythonCommand += " --algorithm " + rlAlgorithm;
-        pythonCommand += " --state " + statePath;
-        
-        // Execute Python process
-        Process process = Runtime.getRuntime().exec(pythonCommand);
-        
-        try {
-            // Wait for process to complete with timeout
-            boolean completed = process.waitFor(5, TimeUnit.SECONDS);
-            
-            if (!completed) {
-                process.destroyForcibly();
-                throw new IOException("Python process timed out");
-            }
-            
-            // Read result
-            String result = new String(Files.readAllBytes(Paths.get("temp_action.txt"))).trim();
-            return Integer.parseInt(result);
-            
-        } catch (InterruptedException e) {
-            throw new IOException("Python process was interrupted: " + e.getMessage());
-        } finally {
-            // Clean up temporary files
-            try {
-                Files.deleteIfExists(Paths.get(statePath));
-                Files.deleteIfExists(Paths.get("temp_action.txt"));
-            } catch (IOException e) {
-                SimLogger.getInstance().simLog("Error cleaning up temp files: " + e.getMessage());
-            }
+        jsonBuilder.append("]}");
+
+        // Send request
+        OutputStream os = conn.getOutputStream();
+        byte[] input = jsonBuilder.toString().getBytes("utf-8");
+        os.write(input, 0, input.length);
+
+        // Read response
+        BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
+        StringBuilder response = new StringBuilder();
+        String responseLine;
+        while ((responseLine = br.readLine()) != null) {
+            response.append(responseLine.trim());
         }
+
+        // Parse action
+        String jsonResponse = response.toString();
+        int action = Integer.parseInt(jsonResponse.replaceAll("[^0-9]", ""));
+        return action;
     }
+
     
     /**
      * Calculate reward for an action
