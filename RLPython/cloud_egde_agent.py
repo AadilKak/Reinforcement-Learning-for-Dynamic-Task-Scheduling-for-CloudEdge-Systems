@@ -68,9 +68,9 @@ class CloudEdgeEnv:
         self.cloud_queue = np.random.randint(0, 8, self.num_cloud_servers)
         
         # Current task parameters
-        self.task_difficulty = np.random.randint(1, 11)  # Computational complexity
-        self.task_data_size = np.random.randint(1, 21)   # Data size in MB
-        self.task_deadline = np.random.randint(5, 16)    # Deadline in time units
+        self.task_difficulty = np.random.randint(1, 6)  # Computational complexity
+        self.task_data_size = np.random.randint(1, 10)   # Data size in MB
+        self.task_deadline = np.random.randint(8, 16)    # Deadline in time units
         
         # Track metrics
         self.total_time = 0
@@ -180,9 +180,9 @@ class CloudEdgeEnv:
             self.deadlines_met += 1
         
         # Calculate reward
-        time_penalty = -processing_time
-        energy_penalty = -energy * 0.1
-        deadline_reward = 5.0 if deadline_met else -2.0
+        time_penalty = -processing_time * 0.6
+        energy_penalty = -energy * 0.05
+        deadline_reward = 10.0 if deadline_met else -10.0
         reward = time_penalty + energy_penalty + deadline_reward
         
         # Add info
