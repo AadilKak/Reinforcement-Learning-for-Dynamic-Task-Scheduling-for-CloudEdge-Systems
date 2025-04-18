@@ -180,11 +180,16 @@ class CloudEdgeEnv:
             self.deadlines_met += 1
         
         # Calculate reward
-        time_penalty = -processing_time * 0.6
-        energy_penalty = -energy * 0.05
-        deadline_reward = 10.0 if deadline_met else -10.0
-        reward = time_penalty + energy_penalty + deadline_reward
-        
+        time_penalty = -processing_time * 0.5
+        energy_penalty = -energy * 0.02
+        deadline_reward = 25.0 if deadline_met else -10.0
+        reward = (time_penalty + energy_penalty + deadline_reward) 
+
+        if processing_time > 15:
+            reward -= 3.0
+
+        reward = max(min(reward, 25), -25)
+
         # Add info
         info["processing_time"] = processing_time
         info["energy"] = energy
@@ -524,6 +529,7 @@ class CloudEdgeSimulator:
                 # Update state and reward
                 state = next_state
                 episode_reward += reward
+                print(f"[DEBUG] reward={reward:.2f}, time={info['processing_time']:.2f}, energy={info['energy']:.2f}, deadline_met={info['deadline_met']}")
             
             # Store episode reward and metrics
             rewards.append(episode_reward)

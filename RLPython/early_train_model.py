@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 simulator = CloudEdgeSimulator(config_path="hyperparameters.yaml")
 
 # Train using DQN or PPO
-dqn_rewards = simulator.train_dqn(episodes=500)  # You can change episodes to 500+
+dqn_rewards = simulator.train_dqn(episodes=1000)  # You can change episodes to 500+
 #ppo_rewards = simulator.train_ppo(episodes=300)
 
 # Optionally evaluate
@@ -12,7 +12,7 @@ metrics = simulator.evaluate_agent(agent_type='dqn', episodes=50)
 print(metrics)
 
 plt.plot(simulator.dqn_agent.reward_history, label='DQN')
-# plt.plot(simulator.ppo_agent.reward_history, label='PPO')
+#plt.plot(simulator.ppo_agent.reward_history, label='PPO')
 plt.legend()
 plt.title("Episode Rewards")
 plt.show()
