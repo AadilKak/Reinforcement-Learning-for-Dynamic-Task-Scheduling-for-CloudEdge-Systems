@@ -20,7 +20,7 @@ ACTION_DIM = int(os.getenv("ACTION_DIM", 10))
 
 # === Load Model === #
 model = None
-@app.before_first_request
+@app.before_request
 def load_model():
     global model
     if ALGORITHM.upper() == "DQN":
