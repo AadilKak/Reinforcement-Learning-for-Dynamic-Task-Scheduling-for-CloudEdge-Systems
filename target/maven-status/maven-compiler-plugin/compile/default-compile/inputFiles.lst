@@ -1,12 +1,15 @@
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\edge_server\EdgeServerManager.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\cloud_server\CloudVmAllocationPolicy_Custom.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\core\ScenarioFactory.java
+C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\MainSimulator.java
+C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\edge_client\FuzzyMobileDeviceManager.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\edge_server\EdgeVM.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\cloud_server\CloudServerManager.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\edge_client\mobile_processing_unit\DefaultMobileServerManager.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\utils\Location.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\edge_server\EdgeVmAllocationPolicy_Custom.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\utils\SimUtils.java
+C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\edge_client\FuzzyExperimentalNetworkModel.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\core\SimManager.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\mobility\NomadicMobility.java
 C:\Users\yohan\OneDrive\Documents\Python\Project\512Project\src\main\java\edu\boun\edgecloudsim\task_generator\LoadGeneratorModel.java

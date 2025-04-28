@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgeDevices>
+
+  <!-- Datacenter #0 (edge node 0) -->
+  <datacenter arch="x86" os="Linux" vmm="Xen">
+    <costPerBw>0.0</costPerBw>
+    <costPerSec>0.0</costPerSec>
+    <costPerMem>0.0</costPerMem>
+    <costPerStorage>0.0</costPerStorage>
+    <location>
+      <attractiveness>0</attractiveness>
+      <wlan_id>0</wlan_id>
+      <x_pos>0</x_pos>
+      <y_pos>0</y_pos>
+    </location>
+    <host>
+      <core>2</core>
+      <mips>2000</mips>
+      <ram>4096</ram>
+      <storage>50000</storage>
+      <VM vmm="Xen">
+        <core>2</core>
+        <mips>2000</mips>
+        <ram>4096</ram>
+        <storage>50000</storage>
+      </VM>
+    </host>
+  </datacenter>
+
+  <!-- Datacenter #1 (edge node 1) -->
+  <datacenter arch="x86" os="Linux" vmm="Xen">
+    <costPerBw>0.0</costPerBw>
+    <costPerSec>0.0</costPerSec>
+    <costPerMem>0.0</costPerMem>
+    <costPerStorage>0.0</costPerStorage>
+    <location>
+      <attractiveness>1</attractiveness>
+      <wlan_id>1</wlan_id>
+      <x_pos>100</x_pos>
+      <y_pos>50</y_pos>
+    </location>
+    <host>
+      <core>1</core>
+      <mips>1500</mips>
+      <ram>2048</ram>
+      <storage>25000</storage>
+      <VM vmm="Xen">
+        <core>1</core>
+        <mips>1500</mips>
+        <ram>2048</ram>
+        <storage>25000</storage>
+      </VM>
+    </host>
+  </datacenter>
+
+  <!-- Datacenter #2 (edge node 2) -->
+  <datacenter arch="x86" os="Linux" vmm="Xen">
+    <costPerBw>0.0</costPerBw>
+    <costPerSec>0.0</costPerSec>
+    <costPerMem>0.0</costPerMem>
+    <costPerStorage>0.0</costPerStorage>
+    <location>
+      <attractiveness>2</attractiveness>
+      <wlan_id>2</wlan_id>
+      <x_pos>200</x_pos>
+      <y_pos>100</y_pos>
+    </location>
+    <host>
+      <core>1</core>
+      <mips>1000</mips>
+      <ram>2048</ram>
+      <storage>25000</storage>
+      <VM vmm="Xen">
+        <core>1</core>
+        <mips>1000</mips>
+        <ram>2048</ram>
+        <storage>25000</storage>
+      </VM>
+    </host>
+  </datacenter>
+
+  <!-- Datacenter #3 (edge node 3) -->
+  <datacenter arch="x86" os="Linux" vmm="Xen">
+    <costPerBw>0.0</costPerBw>
+    <costPerSec>0.0</costPerSec>
+    <costPerMem>0.0</costPerMem>
+    <costPerStorage>0.0</costPerStorage>
+    <location>
+      <attractiveness>2</attractiveness>
+      <wlan_id>3</wlan_id>
+      <x_pos>300</x_pos>
+      <y_pos>150</y_pos>
+    </location>
+    <host>
+      <core>4</core>
+      <mips>2500</mips>
+      <ram>8192</ram>
+      <storage>100000</storage>
+      <VM vmm="Xen">
+        <core>4</core>
+        <mips>2500</mips>
+        <ram>8192</ram>
+        <storage>100000</storage>
+      </VM>
+    </host>
+  </datacenter>
+
+</edgeDevices>
