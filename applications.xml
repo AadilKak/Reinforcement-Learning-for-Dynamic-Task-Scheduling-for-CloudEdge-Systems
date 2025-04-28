@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<applications>
+  <!--
+    name: arbitrary identifier for your application
+    orchestratorPolicy: fully-qualified class name of your RLTaskScheduler
+  -->
+  <application name="RLApp" 
+               orchestratorPolicy="edu.boun.edgecloudsim.applications.rl_based_scheduler.RLTaskScheduler"/>
+</applications>
