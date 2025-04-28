@@ -7,11 +7,11 @@ import edu.boun.edgecloudsim.applications.RLTaskScheduler;
 public class MainSimulator {
     public static void main(String[] args) {
         SimManager simManager = SimManager.getInstance();
-        simManager.initialize("config/edge_config.properties");
+        //simManager.initialize("config/edge_config.properties");
         
         RLTaskScheduler rlScheduler = new RLTaskScheduler("some_scenario", "RLTaskScheduler");
-        simManager.setOrchestrator(rlScheduler);
+        //simManager.setOrchestrator(rlScheduler);
         
-        simManager.startSimulation();
+        //simManager.startSimulation();
     }
 }
