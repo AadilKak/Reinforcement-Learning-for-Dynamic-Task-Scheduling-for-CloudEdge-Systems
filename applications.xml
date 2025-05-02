@@ -25,4 +25,13 @@
     <max_delay_requirement>100</max_delay_requirement>
 
   </application>
+  <Orchestrators>
+    <Policy name="RLTaskScheduler">
+      <class>edu.boun.edgecloudsim.applications.rl_based_scheduler.RLTaskScheduler</class>
+    </Policy>
+  </Orchestrators>
+  <LoadGenerator>
+    <generator class="edu.boun.edgecloudsim.task_generator.IdleActiveLoadGenerator"/>
+  </LoadGenerator>
+
 </applications>

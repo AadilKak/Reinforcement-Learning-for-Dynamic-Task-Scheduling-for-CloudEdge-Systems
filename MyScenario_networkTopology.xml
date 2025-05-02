@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<networkTopology>
+  <networkNodes>
+    <network_node id="0" nextHopId="4" type="EDGE"/>
+    <network_node id="1" nextHopId="4" type="EDGE"/>
+    <network_node id="2" nextHopId="4" type="EDGE"/>
+    <network_node id="3" nextHopId="4" type="EDGE"/>
+    <network_node id="4" nextHopId="4" type="GATEWAY"/>
+  </networkNodes>
+</networkTopology>

@@ -39,8 +39,8 @@ import java.util.function.BiFunction;
  */
 public class RLTaskScheduler extends EdgeOrchestrator {
     
-    private static final int STATE_DIM = 25; // State dimension - adjust based on your environment
-    private static final int ACTION_DIM = 10; // Action dimension - adjust based on your environment
+    private final int STATE_DIM = 25; // State dimension - adjust based on your environment
+    private final int ACTION_DIM = 10; // Action dimension - adjust based on your environment
     
     private String rlAlgorithm; // "DQN" or "PPO"
     private boolean usePretrainedModel;
@@ -440,9 +440,17 @@ public class RLTaskScheduler extends EdgeOrchestrator {
     @Override
     public int getDeviceToOffload(Task task) {
         totalTasks++;
-        
-        // Get current state
-        double[] state = getState(task);
+        double[] state;
+        int selected;
+        try {
+            state   = getState(task);
+            int a   = selectAction(state);
+            selected = mapActionToVM(a);
+        } catch (RuntimeException x) {
+            SimLogger.getInstance().simLog("Topology error, falling back: " + x.getMessage());
+            selected  = 0;            // always send to VM 0
+            state     = new double[STATE_DIM];
+        }
         
         // Select action
         int action = selectAction(state);
@@ -695,15 +703,24 @@ public class RLTaskScheduler extends EdgeOrchestrator {
     /**
      * Return a list of all the cloud vms
      */
-    public List<CloudVM> getCloudVMs(){
+    public List<CloudVM> getCloudVMs() {
         List<CloudVM> cloudVMs = new ArrayList<>();
-        Datacenter dc = SimManager.getInstance().getCloudServerManager().getDatacenter();
-        for (Host host : dc.getHostList()) {
-            cloudVMs.addAll(SimManager.getInstance().getCloudServerManager().getVmList(host.getId())
+        // Grab the Datacenter and its Host list
+        Datacenter dc = SimManager.getInstance()
+                                  .getCloudServerManager()
+                                  .getDatacenter();
+        List<Host> hosts = dc.getHostList();
+        // Use the hostList index (0…hosts.size()-1) for getVmList(...)
+        for (int idx = 0; idx < hosts.size(); idx++) {
+            cloudVMs.addAll(
+                SimManager.getInstance()
+                          .getCloudServerManager()
+                          .getVmList(idx)
             );
         }
         return cloudVMs;
     }
+    
 
     @Override
     public void initialize() {

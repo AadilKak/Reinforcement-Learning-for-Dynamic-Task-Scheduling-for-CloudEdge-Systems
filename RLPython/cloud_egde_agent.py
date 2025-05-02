@@ -529,7 +529,6 @@ class CloudEdgeSimulator:
                 # Update state and reward
                 state = next_state
                 episode_reward += reward
-                print(f"[DEBUG] reward={reward:.2f}, time={info['processing_time']:.2f}, energy={info['energy']:.2f}, deadline_met={info['deadline_met']}")
             
             # Store episode reward and metrics
             rewards.append(episode_reward)
