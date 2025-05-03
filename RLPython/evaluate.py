@@ -2,7 +2,7 @@ import argparse
 from cloud_egde_agent import CloudEdgeSimulator
 import matplotlib.pyplot as plt
 
-
+"""
 def main():
     parser = argparse.ArgumentParser(description="Evaluate pretrained DQN and PPO models on Cloud-Edge simulator")
     parser.add_argument('--dqn_model', type=str, required=True, help='Path to the saved DQN model .pt file')
@@ -61,3 +61,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+"""

@@ -3,10 +3,12 @@
 
   <!-- CLOUD DATACENTER -->
   <datacenter arch="x86" os="Linux" vmm="Xen">
+    <!-- cost parameters -->
     <costPerBw>0.0</costPerBw>
     <costPerSec>0.0</costPerSec>
     <costPerMem>0.0</costPerMem>
     <costPerStorage>0.0</costPerStorage>
+
     <location>
       <attractiveness>0</attractiveness>
       <wlan_id>100</wlan_id>    <!-- Unique numeric ID for cloud -->
@@ -14,10 +16,15 @@
       <y_pos>0</y_pos>
     </location>
     <host>
-      <core>2</core>
+      <arch>x86</arch>            <!-- ← missing -->
+      <os>Linux</os>              <!-- ← missing -->
+      <vmm>Xen</vmm>              <!-- ← missing -->
       <mips>2000</mips>
+      <core>2</core>
       <ram>4096</ram>
+      <bw>10000</bw>              <!-- ← missing -->
       <storage>100000</storage>
+      <delay>0.0</delay>          <!-- ← missing -->
       <VM vmm="Xen">
         <core>2</core>
         <mips>2000</mips>
@@ -29,10 +36,12 @@
 
   <!-- EDGE DATACENTERS -->
   <datacenter arch="x86" os="Linux" vmm="Xen">
+    <!-- cost parameters -->
     <costPerBw>0.0</costPerBw>
     <costPerSec>0.0</costPerSec>
     <costPerMem>0.0</costPerMem>
     <costPerStorage>0.0</costPerStorage>
+
     <location>
       <attractiveness>0</attractiveness>
       <wlan_id>0</wlan_id>
@@ -40,52 +49,110 @@
       <y_pos>0</y_pos>
     </location>
     <host>
-      <!-- … -->
+      <arch>x86</arch>
+      <os>Linux</os>
+      <vmm>Docker</vmm>
+      <mips>1000</mips>         <!-- Million instructions per second per PE -->
+      <core>4</core>           <!-- ← required: number of PEs/cores -->
+      <ram>8192</ram>          <!-- in MB -->
+      <bw>10000</bw>           <!-- in Mbps -->
+      <storage>1000000</storage> <!-- in MB -->
+      <delay>0.0</delay>
     </host>
   </datacenter>
 
   <datacenter arch="x86" os="Linux" vmm="Xen">
+    <!-- cost parameters -->
+    <costPerBw>0.0</costPerBw>
+    <costPerSec>0.0</costPerSec>
+    <costPerMem>0.0</costPerMem>
+    <costPerStorage>0.0</costPerStorage>
+
     <location>
       <attractiveness>1</attractiveness>
       <wlan_id>1</wlan_id>
       <x_pos>100</x_pos>
       <y_pos>50</y_pos>
     </location>
-    <host> <!-- … --> </host>
+    <host>  
+      <arch>x86</arch>
+      <os>Linux</os>
+      <vmm>Docker</vmm>
+      <mips>2000</mips>
+      <core>8</core>           <!-- note this must be present! -->
+      <ram>16384</ram>
+      <bw>20000</bw>
+      <storage>2000000</storage>
+      <delay>0.0</delay>
+    </host>
   </datacenter>
 
   <datacenter arch="x86" os="Linux" vmm="Xen">
+    <!-- cost parameters -->
+    <costPerBw>0.0</costPerBw>
+    <costPerSec>0.0</costPerSec>
+    <costPerMem>0.0</costPerMem>
+    <costPerStorage>0.0</costPerStorage>
+
     <location>
       <attractiveness>2</attractiveness>
       <wlan_id>2</wlan_id>
       <x_pos>200</x_pos>
       <y_pos>100</y_pos>
     </location>
-    <host> <!-- … --> </host>
+    <host> 
+      <arch>x86</arch>
+      <os>Linux</os>
+      <vmm>Docker</vmm>
+      <mips>1000</mips>         <!-- Million instructions per second per PE -->
+      <core>4</core>           <!-- ← required: number of PEs/cores -->
+      <ram>8192</ram>          <!-- in MB -->
+      <bw>10000</bw>           <!-- in Mbps -->
+      <storage>1000000</storage> <!-- in MB -->
+      <delay>0.0</delay>
+    </host>
   </datacenter>
 
   <datacenter arch="x86" os="Linux" vmm="Xen">
+    <!-- cost parameters -->
+    <costPerBw>0.0</costPerBw>
+    <costPerSec>0.0</costPerSec>
+    <costPerMem>0.0</costPerMem>
+    <costPerStorage>0.0</costPerStorage>
+
     <location>
       <attractiveness>3</attractiveness>
       <wlan_id>3</wlan_id>
       <x_pos>300</x_pos>
       <y_pos>150</y_pos>
     </location>
-    <host> <!-- … --> </host>
+    <host> 
+      <arch>x86</arch>
+      <os>Linux</os>
+      <vmm>Docker</vmm>
+      <mips>2000</mips>
+      <core>8</core>           <!-- note this must be present! -->
+      <ram>16384</ram>
+      <bw>20000</bw>
+      <storage>2000000</storage>
+      <delay>0.0</delay>
+    </host>
   </datacenter>
 
   <!-- NETWORK LINKS: must match those wlan_id values exactly -->
-  <Links>
-    <!-- edge→cloud -->
-    <Link from="0"   to="100" bandwidth="100" latency="10"/>
-    <Link from="1"   to="100" bandwidth="100" latency="10"/>
-    <Link from="2"   to="100" bandwidth="100" latency="10"/>
-    <Link from="3"   to="100" bandwidth="100" latency="10"/>
+  <network_topology>
+    <node id="0"/>
+    <node id="1"/>
+    <node id="2"/>
+    <node id="3"/>
+    <node id="100"/>
+    <link from="0" to="1" bandwidth="100Mbps" delay="10ms"/>
+    <link from="1" to="2" bandwidth="100Mbps" delay="10ms"/>
+    <link from="100" to="0"  bandwidth="100Mbps" delay="10ms"/>
+    <link from="100" to="1"  bandwidth="100Mbps" delay="10ms"/>
+    <link from="100" to="2"  bandwidth="100Mbps" delay="10ms"/>
+    <link from="100" to="3"  bandwidth="100Mbps" delay="10ms"/>
+  </network_topology>
 
-    <!-- edge↔edge chaining -->
-    <Link from="0"   to="1"   bandwidth="50"  latency="5"/>
-    <Link from="1"   to="2"   bandwidth="50"  latency="5"/>
-    <Link from="2"   to="3"   bandwidth="50"  latency="5"/>
-  </Links>
 
 </edgeDevices>
