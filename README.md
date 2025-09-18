@@ -43,7 +43,7 @@ Cloud-edge systems support low-latency, high-throughput applications like IoT an
 
 4. Evaluate task scheduling performance under different cloud-edge conditions.
 
-## Accompanying Report
+## Accompanying Paper
 
 The full research paper associated with this project is:
 
@@ -52,7 +52,7 @@ Email: yxg5342@psu.edu
 
 Contribution: 50%
 
-The report presents:
+The paper presents:
 
 Implementation of DQN and PPO RL models in EdgeCloudSim.
 
@@ -62,6 +62,6 @@ Detailed analysis of task completion, latency, CPU utilization, and QoE.
 
 Discussion of failure modes and future improvements.
 
-Access the full report: Download PDF
+Access the full paper: Download PDF
 
-References: [Full reference list in report][https://github.com/yohannesgeleta/512Project](https://github.com/yohannesgeleta/512Project)  
+References: [Full reference list in paper]
