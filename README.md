@@ -64,4 +64,4 @@ Discussion of failure modes and future improvements.
 
 Access the full report: Download PDF
 
-References: [Full reference list in report]
+References: [Full reference list in report][https://github.com/yohannesgeleta/512Project](https://github.com/yohannesgeleta/512Project)  
